@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pollera - Asistente Académico</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- PDF.js para lectura de PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- Mammoth.js para lectura de DOCX -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Header / Navbar -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="bg-indigo-600 p-2 rounded-xl text-white">
+          <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-xl tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            Pollera
+          </h1>
+          <p class="text-xs text-slate-400 hidden sm:block">Tu Asistente de Estudio Inteligente</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-700/60">
+        <button id="tab-study-btn" onclick="switchTab('study')" class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+          <i data-lucide="book-open" class="w-4 h-4"></i>
+          <span>Estudio</span>
+        </button>
+        <button id="tab-timer-btn" onclick="switchTab('timer')" class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 text-slate-400 hover:text-slate-200">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+          <span>Tiempo</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Banner de Dedicatoria Principal -->
+  <section class="bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-slate-900 border-b border-indigo-500/20 py-4 px-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
+      <div class="flex items-center gap-3">
+        <div class="bg-indigo-500/10 border border-indigo-500/30 p-2 rounded-full text-indigo-400">
+          <i data-lucide="sparkles" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Plataforma Académica</span>
+          <h2 class="text-sm font-medium text-slate-200">
+            Diseñado especialmente para: <span id="user-display" class="font-bold text-purple-300">Estudiante</span>
+          </h2>
+        </div>
+      </div>
+      <button onclick="editRecipient()" class="text-xs bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+        <i data-lucide="user-cog" class="w-3.5 h-3.5"></i>
+        <span>Cambiar destinatario</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+    <!-- SECCIÓN DE ESTUDIO -->
+    <div id="tab-study" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Columna Izquierda: Entrada de Texto / Archivo -->
+      <div class="bg-slate-800/50 border border-slate-700/70 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+          <h3 class="font-semibold text-slate-200 flex items-center gap-2">
+            <i data-lucide="file-text" class="w-5 h-5 text-indigo-400"></i>
+            Documento o Texto
+          </h3>
+          <span id="char-count" class="text-xs text-slate-400">0 caracteres</span>
+        </div>
+
+        <!-- Carga de archivo -->
+        <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500/50 rounded-xl p-4 text-center transition bg-slate-900/30 relative cursor-pointer" onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" accept=".pdf,.docx,.txt" class="hidden" onchange="handleFileUpload(event)">
+          <i data-lucide="upload-cloud" class="w-8 h-8 text-indigo-400 mx-auto mb-2"></i>
+          <p class="text-sm font-medium text-slate-300">Sube un archivo PDF, Word (.docx) o TXT</p>
+          <p class="text-xs text-slate-500 mt-1">Haz clic o arrastra tu documento aquí</p>
+        </div>
+
+        <!-- Área de Texto -->
+        <textarea id="text-input" placeholder="O pega el texto que deseas procesar aquí..." class="w-full h-64 bg-slate-900/80 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none font-sans" oninput="updateCharCount()"></textarea>
+
+        <!-- Botones de Acción -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+          <button onclick="processText('summarize')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-3 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition shadow-lg shadow-indigo-600/20">
+            <i data-lucide="file-output" class="w-4 h-4"></i>
+            Resumir
+          </button>
+          <button onclick="processText('ideas')" class="bg-purple-600 hover:bg-purple-500 text-white font-medium py-2.5 px-3 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition shadow-lg shadow-purple-600/20">
+            <i data-lucide="list-tree" class="w-4 h-4"></i>
+            Ideas Clave
+          </button>
+          <button onclick="processText('translate')" class="bg-teal-600 hover:bg-teal-500 text-white font-medium py-2.5 px-3 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition shadow-lg shadow-teal-600/20">
+            <i data-lucide="languages" class="w-4 h-4"></i>
+            Traducir
+          </button>
+          <button onclick="clearText()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-medium py-2.5 px-3 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+            Limpiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Columna Derecha: Resultados y Control por Voz (Voz Interactiva) -->
+      <div class="bg-slate-800/50 border border-slate-700/70 rounded-2xl p-5 flex flex-col gap-4 shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+          <h3 class="font-semibold text-slate-200 flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-5 h-5 text-purple-400"></i>
+            Resultado del Análisis
+          </h3>
+
+          <!-- Control de Lector de Voz Incorporado -->
+          <div class="flex items-center gap-2 bg-slate-900/60 border border-slate-700 p-1 rounded-xl">
+            <button id="tts-play-btn" onclick="toggleSpeech()" class="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition" title="Escuchar contenido">
+              <i id="tts-icon" data-lucide="volume-2" class="w-4 h-4"></i>
+            </button>
+            <button onclick="stopSpeech()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition" title="Detener lectura">
+              <i data-lucide="square" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Área de Salida de Resultados -->
+        <div id="output-box" class="w-full h-80 bg-slate-900/80 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 overflow-y-auto whitespace-pre-wrap font-sans leading-relaxed">
+          <div class="h-full flex flex-col items-center justify-center text-slate-500 text-center p-4">
+            <i data-lucide="brain-circuit" class="w-12 h-12 mb-3 text-slate-600"></i>
+            <p>Selecciona una opción (Resumir, Extraer Ideas o Traducir) para visualizar el resultado aquí.</p>
+          </div>
+        </div>
+
+        <!-- Selector de Idioma/Voz -->
+        <div class="flex items-center justify-between pt-1 text-xs text-slate-400">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="mic" class="w-4 h-4 text-indigo-400"></i>
+            Asistente de Voz Activo
+          </span>
+          <select id="voice-select" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg px-2 py-1 focus:outline-none max-w-[200px]">
+            <!-- Las voces instaladas en el sistema se cargarán aquí automáticamente -->
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN DE ORGANIZADOR DE TIEMPO (OCULTA POR DEFECTO) -->
+    <div id="tab-timer" class="hidden grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Temporizador Principal Pomodoro -->
+      <div class="lg:col-span-1 bg-slate-800/50 border border-slate-700/70 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-xl">
+        <h3 class="text-base font-semibold text-slate-300 mb-2 flex items-center gap-2">
+          <i data-lucide="timer" class="w-5 h-5 text-indigo-400"></i>
+          Temporizador de Bloques
+        </h3>
+        
+        <!-- Display del tiempo -->
+        <div class="my-6">
+          <span id="timer-display" class="text-6xl font-bold font-mono tracking-tight text-indigo-400">25:00</span>
+          <p id="timer-label" class="text-xs text-slate-400 mt-2 font-medium">BLOQUE DE ESTUDIO</p>
+        </div>
+
+        <!-- Controles del temporizador -->
+        <div class="flex items-center gap-3 mb-6">
+          <button id="timer-toggle-btn" onclick="toggleTimer()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-2xl transition shadow-lg shadow-indigo-600/30">
+            <i id="timer-toggle-icon" data-lucide="play" class="w-6 h-6 fill-current"></i>
+          </button>
+          <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 p-4 rounded-2xl transition">
+            <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <!-- Selector de tipo de bloque -->
+        <div class="flex gap-2 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700/60 w-full">
+          <button onclick="setTimerMode('work')" class="flex-1 py-1.5 text-xs rounded-lg font-medium bg-indigo-600 text-white transition">Estudio (25m)</button>
+          <button onclick="setTimerMode('shortBreak')" class="flex-1 py-1.5 text-xs rounded-lg font-medium text-slate-400 hover:text-slate-200 transition">Pausa (5m)</button>
+          <button onclick="setTimerMode('longBreak')" class="flex-1 py-1.5 text-xs rounded-lg font-medium text-slate-400 hover:text-slate-200 transition">Descanso (15m)</button>
+        </div>
+      </div>
+
+      <!-- Planificador de Tareas -->
+      <div class="lg:col-span-2 bg-slate-800/50 border border-slate-700/70 rounded-2xl p-6 shadow-xl flex flex-col">
+        <h3 class="text-base font-semibold text-slate-200 mb-4 flex items-center gap-2">
+          <i data-lucide="list-todo" class="w-5 h-5 text-purple-400"></i>
+          Organizador de Tareas por Bloques
+        </h3>
+
+        <!-- Formulario agregar tarea -->
+        <form onsubmit="addTask(event)" class="flex gap-2 mb-4">
+          <input type="text" id="task-title-input" placeholder="Nombre de la materia o tema..." required class="flex-1 bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <input type="number" id="task-blocks-input" min="1" max="10" value="1" placeholder="Bloques" class="w-24 bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center">
+          <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition flex items-center gap-1.5">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Añadir
+          </button>
+        </form>
+
+        <!-- Lista de tareas -->
+        <div id="tasks-list" class="flex-1 overflow-y-auto max-h-64 space-y-2 pr-1">
+          <!-- Tareas dinámicas se inyectan aquí -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
